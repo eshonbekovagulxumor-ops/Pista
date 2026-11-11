@@ -1,0 +1,30 @@
+name: build
+on:
+  push:
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Unpack source zip if one was uploaded
+        run: |
+          if ls ./*.zip >/dev/null 2>&1; then unzip -q -o ./*.zip; fi
+      - name: Locate project
+        run: |
+          P=$(dirname "$(find . -name settings.gradle -not -path './.git/*' | head -n1)")
+          echo "PROJECT=$P" >> "$GITHUB_ENV"
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: 8.5
+      - name: Build
+        working-directory: ${{ env.PROJECT }}
+        run: gradle build --no-daemon
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hackclient-jar
+          path: ${{ env.PROJECT }}/build/libs/hackclient-*.jar
